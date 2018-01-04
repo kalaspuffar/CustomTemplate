@@ -16,8 +16,9 @@ public class RequestHandler implements HttpHandler {
     private Map<String, Endpoint> endpointMap = new HashMap<String, Endpoint>();
 
     public RequestHandler() {
-        endpointMap.put("/notes", new NotesCollection(NotesRepository.getInstance()));
-        endpointMap.put("/notes/{id}", new NotesItem(NotesRepository.getInstance()));
+{{=< >=}}<#operations><#operation>
+        endpointMap.put("<&path>", new NotesCollection(NotesRepository.getInstance()));
+</operation></operations><={{ }}=>
     }
 
     private String getRequestBody(HttpExchange t) throws IOException {
