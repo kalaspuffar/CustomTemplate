@@ -64,26 +64,28 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
          * as with models, add multiple entries with different extensions for multiple files per
          * class
          */
+
         apiTemplateFiles.put(
                 "controller.mustache",   // the template to use
-                ".js");       // the extension for each file to write
+                ".java");       // the extension for each file to write
 
         /*
          * Template Location.  This is the location which templates will be read from.  The generator
          * will use the resource stream to attempt to read the templates.
          */
-        embeddedTemplateDir = templateDir = "nodejs";
+        embeddedTemplateDir = templateDir = "java-server";
 
         /*
          * Reserved words.  Override this with reserved words specific to your language
          */
         setReservedWordsLowerCase(
                 Arrays.asList(
-                        "break", "case", "class", "catch", "const", "continue", "debugger",
-                        "default", "delete", "do", "else", "export", "extends", "finally",
+                        "break", "case", "class", "catch", "const", "continue",
+                        "default", "delete", "do", "else", "extends", "finally",
                         "for", "function", "if", "import", "in", "instanceof", "let", "new",
-                        "return", "super", "switch", "this", "throw", "try", "typeof", "var",
-                        "void", "while", "with", "yield")
+                        "return", "super", "switch", "this", "throw", "try",
+                        "void", "while", "private", "public", "protected"
+                )
         );
 
         /*
@@ -93,13 +95,11 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
         additionalProperties.put("apiVersion", apiVersion);
         additionalProperties.put("serverPort", serverPort);
         additionalProperties.put("implFolder", implFolder);
-
-        supportingFiles.add(new SupportingFile("writer.mustache", ("utils").replace(".", "/"), "writer.js"));
     }
 
     @Override
     public String apiPackage() {
-        return "controllers";
+        return "src/main/java/org.simpleserver.controllers";
     }
 
     /**
@@ -132,8 +132,7 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
      */
     @Override
     public String getHelp() {
-        return "Generates a nodejs server library using the swagger-tools project.  By default, " +
-                "it will also generate service classes--which you can disable with the `-Dnoservice` environment variable.";
+        return "Generates a simple java server library using the swagger-tools project.";
     }
 
     @Override
@@ -147,23 +146,6 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
     @Override
     public String toApiFilename(String name) {
         return toApiName(name);
-    }
-
-
-    @Override
-    public String apiFilename(String templateName, String tag) {
-        String result = super.apiFilename(templateName, tag);
-
-        if ( templateName.equals("service.mustache") ) {
-            String stringToMatch = File.separator + "controllers" + File.separator;
-            String replacement = File.separator + implFolder + File.separator;
-            result = result.replaceAll(Pattern.quote(stringToMatch), replacement);
-        }
-        return result;
-    }
-
-    private String implFileFolder(String output) {
-        return outputFolder + "/" + output + "/" + apiPackage().replace('.', '/');
     }
 
     /**
@@ -224,6 +206,19 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
         return objs;
     }
 
+
+    @Override
+    public void processOpts() {
+        super.processOpts();
+
+        writeOptional(outputFolder, new SupportingFile("org.simpleserver/Endpoint.java", "src/main/java/org/simpleserver", "Endpoint.java"));
+        writeOptional(outputFolder, new SupportingFile("org.simpleserver/RequestHandler.mustache", "src/main/java/org/simpleserver", "RequestHandler.java"));
+        writeOptional(outputFolder, new SupportingFile("org.simpleserver/SimpleServer.java", "src/main/java/org/simpleserver", "SimpleServer.java"));
+        writeOptional(outputFolder, new SupportingFile(".gitignore", "", ".gitignore"));
+        writeOptional(outputFolder, new SupportingFile("README.mustache", "", "README.md"));
+    }
+
+
     @SuppressWarnings("unchecked")
     private static List<Map<String, Object>> getOperations(Map<String, Object> objs) {
         List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
@@ -256,34 +251,6 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
         }
 
         return opsByPathList;
-    }
-
-    @Override
-    public void processOpts() {
-        super.processOpts();
-
-        /*
-         * Supporting Files.  You can write single files for the generator with the
-         * entire object tree available.  If the input file has a suffix of `.mustache
-         * it will be processed by the template engine.  Otherwise, it will be copied
-         */
-        // supportingFiles.add(new SupportingFile("controller.mustache",
-        //   "controllers",
-        //   "controller.js")
-        // );
-        supportingFiles.add(new SupportingFile("swagger.mustache",
-                "api",
-                "swagger.yaml")
-        );
-
-        writeOptional(outputFolder, new SupportingFile("index.mustache", "", "index.js"));
-        writeOptional(outputFolder, new SupportingFile("package.mustache", "", "package.json"));
-        writeOptional(outputFolder, new SupportingFile("README.mustache", "", "README.md"));
-        if (System.getProperty("noservice") == null) {
-            apiTemplateFiles.put(
-                    "service.mustache",   // the template to use
-                    "Service.js");       // the extension for each file to write
-        }
     }
 
     @Override
@@ -323,8 +290,10 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
                     for(HttpMethod method : operationMap.keySet()) {
                         Operation operation = operationMap.get(method);
                         String tag = "default";
-                        if(operation.getTags() != null && operation.getTags().size() > 0) {
-                            tag = toApiName(operation.getTags().get(0));
+                        if(pathname.endsWith("}")) {
+                            tag = pathname.replaceAll("\\{([a-zA-Z]+)\\}", "") + "Item";
+                        } else {
+                            tag = pathname.replaceAll("\\{([a-zA-Z]+)\\}", "") + "Collection";
                         }
                         if(operation.getOperationId() == null) {
                             operation.setOperationId(getOrGenerateOperationId(operation, pathname, method.toString()));

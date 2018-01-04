@@ -26,7 +26,6 @@ security:
 paths:
   /notes:
     get:
-      operationId: "getAllNotes"
       parameters: []
       responses:
         200:
@@ -35,9 +34,7 @@ paths:
             type: "array"
             items:
               $ref: "#/definitions/Note"
-      x-swagger-router-controller: "Default"
     post:
-      operationId: "postNote"
       parameters:
       - in: "body"
         name: "note"
@@ -48,10 +45,8 @@ paths:
       responses:
         201:
           description: "Note was correctly created"
-      x-swagger-router-controller: "Default"
   /notes/{id}:
     get:
-      operationId: "getNotesById"
       parameters:
       - name: "id"
         in: "path"
@@ -63,9 +58,7 @@ paths:
           description: "Note was fetched correctly"
         404:
           description: "Note wasn't found"
-      x-swagger-router-controller: "Default"
     put:
-      operationId: "putNotesById"
       parameters:
       - name: "id"
         in: "path"
@@ -83,9 +76,7 @@ paths:
           description: "Note was replaced."
         500:
           description: "Internal server error"
-      x-swagger-router-controller: "Default"
     delete:
-      operationId: "deleteNotesById"
       parameters:
       - name: "id"
         in: "path"
@@ -103,9 +94,7 @@ paths:
           description: "Note was deleted"
         404:
           description: "Note missing"
-      x-swagger-router-controller: "Default"
     patch:
-      operationId: "patchNotesById"
       parameters:
       - name: "id"
         in: "path"
@@ -123,7 +112,6 @@ paths:
           description: "Note was changed."
         500:
           description: "Internal server error"
-      x-swagger-router-controller: "Default"
 definitions:
   Note:
     type: "object"
