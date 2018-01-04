@@ -40,171 +40,216 @@ import org.slf4j.LoggerFactory;
 public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(CustomTemplateCodegen.class);
     protected String implFolder = "service";
-    public static final String GOOGLE_CLOUD_FUNCTIONS = "googleCloudFunctions";
-    public static final String EXPORTED_NAME = "exportedName";
+
     protected String apiVersion = "1.0.0";
     protected int serverPort = 8080;
     protected String projectName = "swagger-server";
-    protected boolean googleCloudFunctions;
-    protected String exportedName;
 
-    public NodeJSServerCodegen() {
-        this.outputFolder = "generated-code/nodejs";
-        this.modelTemplateFiles.clear();
-        this.apiTemplateFiles.put("controller.mustache", ".js");
-        this.embeddedTemplateDir = this.templateDir = "nodejs";
-        this.setReservedWordsLowerCase(Arrays.asList("break", "case", "class", "catch", "const", "continue", "debugger", "default", "delete", "do", "else", "export", "extends", "finally", "for", "function", "if", "import", "in", "instanceof", "let", "new", "return", "super", "switch", "this", "throw", "try", "typeof", "var", "void", "while", "with", "yield"));
-        this.additionalProperties.put("apiVersion", this.apiVersion);
-        this.additionalProperties.put("serverPort", this.serverPort);
-        this.additionalProperties.put("implFolder", this.implFolder);
-        this.supportingFiles.add(new SupportingFile("writer.mustache", "utils".replace(".", "/"), "writer.js"));
-        this.cliOptions.add(CliOption.newBoolean("googleCloudFunctions", "When specified, it will generate the code which runs within Google Cloud Functions instead of standalone Node.JS server. See https://cloud.google.com/functions/docs/quickstart for the details of how to deploy the generated code."));
-        this.cliOptions.add(new CliOption("exportedName", "When the generated code will be deployed to Google Cloud Functions, this option can be used to update the name of the exported function. By default, it refers to the basePath. This does not affect normal standalone nodejs server code."));
+    public CustomTemplateCodegen() {
+        super();
+
+        // set the output folder here
+        outputFolder = "generated-code/java-server";
+
+        /*
+         * Models.  You can write model files using the modelTemplateFiles map.
+         * if you want to create one template for file, you can do so here.
+         * for multiple files for model, just put another entry in the `modelTemplateFiles` with
+         * a different extension
+         */
+        modelTemplateFiles.clear();
+
+        /*
+         * Api classes.  You can write classes for each Api file with the apiTemplateFiles map.
+         * as with models, add multiple entries with different extensions for multiple files per
+         * class
+         */
+        apiTemplateFiles.put(
+                "controller.mustache",   // the template to use
+                ".js");       // the extension for each file to write
+
+        /*
+         * Template Location.  This is the location which templates will be read from.  The generator
+         * will use the resource stream to attempt to read the templates.
+         */
+        embeddedTemplateDir = templateDir = "nodejs";
+
+        /*
+         * Reserved words.  Override this with reserved words specific to your language
+         */
+        setReservedWordsLowerCase(
+                Arrays.asList(
+                        "break", "case", "class", "catch", "const", "continue", "debugger",
+                        "default", "delete", "do", "else", "export", "extends", "finally",
+                        "for", "function", "if", "import", "in", "instanceof", "let", "new",
+                        "return", "super", "switch", "this", "throw", "try", "typeof", "var",
+                        "void", "while", "with", "yield")
+        );
+
+        /*
+         * Additional Properties.  These values can be passed to the templates and
+         * are available in models, apis, and supporting files
+         */
+        additionalProperties.put("apiVersion", apiVersion);
+        additionalProperties.put("serverPort", serverPort);
+        additionalProperties.put("implFolder", implFolder);
+
+        supportingFiles.add(new SupportingFile("writer.mustache", ("utils").replace(".", "/"), "writer.js"));
     }
 
+    @Override
     public String apiPackage() {
         return "controllers";
     }
 
+    /**
+     * Configures the type of generator.
+     *
+     * @return the CodegenType for this generator
+     * @see io.swagger.codegen.CodegenType
+     */
+    @Override
     public CodegenType getTag() {
         return CodegenType.SERVER;
     }
 
+    /**
+     * Configures a friendly name for the generator.  This will be used by the generator
+     * to select the library with the -l flag.
+     *
+     * @return the friendly name for the generator
+     */
+    @Override
     public String getName() {
-        return "nodejs-server";
+        return "java-server";
     }
 
+    /**
+     * Returns human-friendly help for the generator.  Provide the consumer with help
+     * tips, parameters here
+     *
+     * @return A string value for the help message
+     */
+    @Override
     public String getHelp() {
-        return "Generates a nodejs server library using the swagger-tools project.  By default, it will also generate service classes--which you can disable with the `-Dnoservice` environment variable.";
+        return "Generates a nodejs server library using the swagger-tools project.  By default, " +
+                "it will also generate service classes--which you can disable with the `-Dnoservice` environment variable.";
     }
 
+    @Override
     public String toApiName(String name) {
-        return name.length() == 0 ? "DefaultController" : this.initialCaps(name);
+        if (name.length() == 0) {
+            return "DefaultController";
+        }
+        return initialCaps(name);
     }
 
+    @Override
     public String toApiFilename(String name) {
-        return this.toApiName(name);
+        return toApiName(name);
     }
 
+
+    @Override
     public String apiFilename(String templateName, String tag) {
         String result = super.apiFilename(templateName, tag);
-        if (templateName.equals("service.mustache")) {
+
+        if ( templateName.equals("service.mustache") ) {
             String stringToMatch = File.separator + "controllers" + File.separator;
-            String replacement = File.separator + this.implFolder + File.separator;
+            String replacement = File.separator + implFolder + File.separator;
             result = result.replaceAll(Pattern.quote(stringToMatch), replacement);
         }
-
         return result;
     }
 
     private String implFileFolder(String output) {
-        return this.outputFolder + "/" + output + "/" + this.apiPackage().replace('.', '/');
+        return outputFolder + "/" + output + "/" + apiPackage().replace('.', '/');
     }
 
+    /**
+     * Escapes a reserved word as defined in the `reservedWords` array. Handle escaping
+     * those terms here.  This logic is only called if a variable matches the reserved words
+     *
+     * @return the escaped term
+     */
+    @Override
     public String escapeReservedWord(String name) {
-        return this.reservedWordsMappings().containsKey(name) ? (String)this.reservedWordsMappings().get(name) : "_" + name;
+        if(this.reservedWordsMappings().containsKey(name)) {
+            return this.reservedWordsMappings().get(name);
+        }
+        return "_" + name;
     }
 
+    /**
+     * Location to write api files.  You can use the apiPackage() as defined when the class is
+     * instantiated
+     */
+    @Override
     public String apiFileFolder() {
-        return this.outputFolder + File.separator + this.apiPackage().replace('.', File.separatorChar);
+        return outputFolder + File.separator + apiPackage().replace('.', File.separatorChar);
     }
 
-    public String getExportedName() {
-        return this.exportedName;
-    }
-
-    public void setExportedName(String name) {
-        this.exportedName = name;
-    }
-
+    @Override
     public Map<String, Object> postProcessOperations(Map<String, Object> objs) {
-        Map<String, Object> objectMap = (Map)objs.get("operations");
-        List<CodegenOperation> operations = (List)objectMap.get("operation");
-        Iterator var4 = operations.iterator();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> objectMap = (Map<String, Object>) objs.get("operations");
+        @SuppressWarnings("unchecked")
+        List<CodegenOperation> operations = (List<CodegenOperation>) objectMap.get("operation");
+        for (CodegenOperation operation : operations) {
+            operation.httpMethod = operation.httpMethod.toLowerCase();
 
-        label58:
-        while(true) {
-            CodegenOperation operation;
-            Iterator it;
-            do {
-                do {
-                    if (!var4.hasNext()) {
-                        return objs;
+            List<CodegenParameter> params = operation.allParams;
+            if (params != null && params.size() == 0) {
+                operation.allParams = null;
+            }
+            List<CodegenResponse> responses = operation.responses;
+            if (responses != null) {
+                for (CodegenResponse resp : responses) {
+                    if ("0".equals(resp.code)) {
+                        resp.code = "default";
                     }
-
-                    operation = (CodegenOperation)var4.next();
-                    operation.httpMethod = operation.httpMethod.toLowerCase();
-                    List<CodegenParameter> params = operation.allParams;
-                    if (params != null && params.size() == 0) {
-                        operation.allParams = null;
+                }
+            }
+            if (operation.examples != null && !operation.examples.isEmpty()) {
+                // Leave application/json* items only
+                for (Iterator<Map<String, String>> it = operation.examples.iterator(); it.hasNext(); ) {
+                    final Map<String, String> example = it.next();
+                    final String contentType = example.get("contentType");
+                    if (contentType == null || !contentType.startsWith("application/json")) {
+                        it.remove();
                     }
-
-                    List<CodegenResponse> responses = operation.responses;
-                    if (responses != null) {
-                        it = responses.iterator();
-
-                        while(it.hasNext()) {
-                            CodegenResponse resp = (CodegenResponse)it.next();
-                            if ("0".equals(resp.code)) {
-                                resp.code = "default";
-                            }
-                        }
-                    }
-                } while(operation.examples == null);
-            } while(operation.examples.isEmpty());
-
-            it = operation.examples.iterator();
-
-            while(true) {
-                String contentType;
-                do {
-                    if (!it.hasNext()) {
-                        continue label58;
-                    }
-
-                    Map<String, String> example = (Map)it.next();
-                    contentType = (String)example.get("contentType");
-                } while(contentType != null && contentType.startsWith("application/json"));
-
-                it.remove();
+                }
             }
         }
+        return objs;
     }
 
+    @SuppressWarnings("unchecked")
     private static List<Map<String, Object>> getOperations(Map<String, Object> objs) {
-        List<Map<String, Object>> result = new ArrayList();
-        Map<String, Object> apiInfo = (Map)objs.get("apiInfo");
-        List<Map<String, Object>> apis = (List)apiInfo.get("apis");
-        Iterator var4 = apis.iterator();
-
-        while(var4.hasNext()) {
-            Map<String, Object> api = (Map)var4.next();
-            result.add((Map)api.get("operations"));
+        List<Map<String, Object>> result = new ArrayList<Map<String, Object>>();
+        Map<String, Object> apiInfo = (Map<String, Object>) objs.get("apiInfo");
+        List<Map<String, Object>> apis = (List<Map<String, Object>>) apiInfo.get("apis");
+        for (Map<String, Object> api : apis) {
+            result.add((Map<String, Object>) api.get("operations"));
         }
-
         return result;
     }
 
     private static List<Map<String, Object>> sortOperationsByPath(List<CodegenOperation> ops) {
         Multimap<String, CodegenOperation> opsByPath = ArrayListMultimap.create();
-        Iterator var2 = ops.iterator();
 
-        while(var2.hasNext()) {
-            CodegenOperation op = (CodegenOperation)var2.next();
+        for (CodegenOperation op : ops) {
             opsByPath.put(op.path, op);
         }
 
-        List<Map<String, Object>> opsByPathList = new ArrayList();
-        Iterator var8 = opsByPath.asMap().entrySet().iterator();
-
-        while(var8.hasNext()) {
-            Entry<String, Collection<CodegenOperation>> entry = (Entry)var8.next();
-            Map<String, Object> opsByPathEntry = new HashMap();
+        List<Map<String, Object>> opsByPathList = new ArrayList<Map<String, Object>>();
+        for (Entry<String, Collection<CodegenOperation>> entry : opsByPath.asMap().entrySet()) {
+            Map<String, Object> opsByPathEntry = new HashMap<String, Object>();
             opsByPathList.add(opsByPathEntry);
             opsByPathEntry.put("path", entry.getKey());
             opsByPathEntry.put("operation", entry.getValue());
-            List<CodegenOperation> operationsForThisPath = Lists.newArrayList((Iterable)entry.getValue());
-            ((CodegenOperation)operationsForThisPath.get(operationsForThisPath.size() - 1)).hasMore = false;
+            List<CodegenOperation> operationsForThisPath = Lists.newArrayList(entry.getValue());
+            operationsForThisPath.get(operationsForThisPath.size() - 1).hasMore = false;
             if (opsByPathList.size() < opsByPath.asMap().size()) {
                 opsByPathEntry.put("hasMore", "true");
             }
@@ -213,15 +258,35 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
         return opsByPathList;
     }
 
+    @Override
     public void processOpts() {
         super.processOpts();
 
-        this.supportingFiles.add(new SupportingFile("swagger.mustache", "api", "swagger.yaml"));
-        this.writeOptional(this.outputFolder, new SupportingFile("index.mustache", "", "index.js"));
-        this.writeOptional(this.outputFolder, new SupportingFile("package.mustache", "", "package.json"));
-        this.writeOptional(this.outputFolder, new SupportingFile("README.mustache", "", "README.md"));
+        /*
+         * Supporting Files.  You can write single files for the generator with the
+         * entire object tree available.  If the input file has a suffix of `.mustache
+         * it will be processed by the template engine.  Otherwise, it will be copied
+         */
+        // supportingFiles.add(new SupportingFile("controller.mustache",
+        //   "controllers",
+        //   "controller.js")
+        // );
+        supportingFiles.add(new SupportingFile("swagger.mustache",
+                "api",
+                "swagger.yaml")
+        );
+
+        writeOptional(outputFolder, new SupportingFile("index.mustache", "", "index.js"));
+        writeOptional(outputFolder, new SupportingFile("package.mustache", "", "package.json"));
+        writeOptional(outputFolder, new SupportingFile("README.mustache", "", "README.md"));
+        if (System.getProperty("noservice") == null) {
+            apiTemplateFiles.put(
+                    "service.mustache",   // the template to use
+                    "Service.js");       // the extension for each file to write
+        }
     }
 
+    @Override
     public void preprocessSwagger(Swagger swagger) {
         String host = swagger.getHost();
         String port = "8080";
@@ -231,92 +296,89 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
                 port = parts[1];
             }
         }
-
         this.additionalProperties.put("serverPort", port);
+
         if (swagger.getInfo() != null) {
             Info info = swagger.getInfo();
             if (info.getTitle() != null) {
-                this.projectName = info.getTitle().replaceAll("[^a-zA-Z0-9]", "-").replaceAll("^[-]*", "").replaceAll("[-]*$", "").replaceAll("[-]{2,}", "-").toLowerCase();
-                this.additionalProperties.put("projectName", this.projectName);
+                // when info.title is defined, use it for projectName
+                // used in package.json
+                projectName = info.getTitle()
+                        .replaceAll("[^a-zA-Z0-9]", "-")
+                        .replaceAll("^[-]*", "")
+                        .replaceAll("[-]*$", "")
+                        .replaceAll("[-]{2,}", "-")
+                        .toLowerCase();
+                this.additionalProperties.put("projectName", projectName);
             }
         }
 
+        // need vendor extensions for x-swagger-router-controller
         Map<String, Path> paths = swagger.getPaths();
-        if (paths != null) {
-            Iterator var5 = paths.keySet().iterator();
-
-            while(true) {
-                String pathname;
-                Map operationMap;
-                do {
-                    if (!var5.hasNext()) {
-                        return;
-                    }
-
-                    pathname = (String)var5.next();
-                    Path path = (Path)paths.get(pathname);
-                    operationMap = path.getOperationMap();
-                } while(operationMap == null);
-
-                Iterator var9 = operationMap.keySet().iterator();
-
-                while(var9.hasNext()) {
-                    HttpMethod method = (HttpMethod)var9.next();
-                    Operation operation = (Operation)operationMap.get(method);
-                    String tag = "default";
-                    if (operation.getTags() != null && operation.getTags().size() > 0) {
-                        tag = this.toApiName((String)operation.getTags().get(0));
-                    }
-
-                    if (operation.getOperationId() == null) {
-                        operation.setOperationId(this.getOrGenerateOperationId(operation, pathname, method.toString()));
-                    }
-
-                    if (operation.getVendorExtensions().get("x-swagger-router-controller") == null) {
-                        operation.getVendorExtensions().put("x-swagger-router-controller", this.sanitizeTag(tag));
+        if(paths != null) {
+            for(String pathname : paths.keySet()) {
+                Path path = paths.get(pathname);
+                Map<HttpMethod, Operation> operationMap = path.getOperationMap();
+                if(operationMap != null) {
+                    for(HttpMethod method : operationMap.keySet()) {
+                        Operation operation = operationMap.get(method);
+                        String tag = "default";
+                        if(operation.getTags() != null && operation.getTags().size() > 0) {
+                            tag = toApiName(operation.getTags().get(0));
+                        }
+                        if(operation.getOperationId() == null) {
+                            operation.setOperationId(getOrGenerateOperationId(operation, pathname, method.toString()));
+                        }
+                        if(operation.getVendorExtensions().get("x-swagger-router-controller") == null) {
+                            operation.getVendorExtensions().put("x-swagger-router-controller", sanitizeTag(tag));
+                        }
                     }
                 }
             }
         }
     }
 
+    @Override
     public Map<String, Object> postProcessSupportingFileData(Map<String, Object> objs) {
         Swagger swagger = (Swagger)objs.get("swagger");
-        if (swagger != null) {
+        if(swagger != null) {
             try {
                 SimpleModule module = new SimpleModule();
                 module.addSerializer(Double.class, new JsonSerializer<Double>() {
-                    public void serialize(Double val, JsonGenerator jgen, SerializerProvider provider) throws IOException, JsonProcessingException {
+                    @Override
+                    public void serialize(Double val, JsonGenerator jgen,
+                                          SerializerProvider provider) throws IOException, JsonProcessingException {
                         jgen.writeNumber(new BigDecimal(val));
                     }
                 });
                 objs.put("swagger-yaml", Yaml.mapper().registerModule(module).writeValueAsString(swagger));
-            } catch (JsonProcessingException var7) {
-                LOGGER.error(var7.getMessage(), var7);
+            } catch (JsonProcessingException e) {
+                LOGGER.error(e.getMessage(), e);
             }
         }
+        for (Map<String, Object> operations : getOperations(objs)) {
+            @SuppressWarnings("unchecked")
+            List<CodegenOperation> ops = (List<CodegenOperation>) operations.get("operation");
 
-        Iterator var8 = getOperations(objs).iterator();
-
-        while(var8.hasNext()) {
-            Map<String, Object> operations = (Map)var8.next();
-            List<CodegenOperation> ops = (List)operations.get("operation");
             List<Map<String, Object>> opsByPathList = sortOperationsByPath(ops);
             operations.put("operationsByPath", opsByPathList);
         }
-
         return super.postProcessSupportingFileData(objs);
     }
 
+    @Override
     public String removeNonNameElementToCamelCase(String name) {
-        return this.removeNonNameElementToCamelCase(name, "[-:;#]");
+        return removeNonNameElementToCamelCase(name, "[-:;#]");
     }
 
+    @Override
     public String escapeUnsafeCharacters(String input) {
         return input.replace("*/", "*_/").replace("/*", "/_*");
     }
 
+    @Override
     public String escapeQuotationMark(String input) {
+        // remove " to avoid code injection
         return input.replace("\"", "");
     }
 }
