@@ -244,13 +244,6 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
                         .toLowerCase();
                 this.additionalProperties.put("projectName", projectName);
             }
-
-            Contact contact = info.getContact();
-            if (contact != null && contact.getName() != null) {
-                this.additionalProperties().put("infoName", this.escapeText(contact.getName()));
-            } else {
-                this.additionalProperties().put("infoName", "[YOUR NAME HERE]");
-            }
         }
 
         // need vendor extensions for x-swagger-router-controller
