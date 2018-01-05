@@ -4,6 +4,11 @@ package org.simpleserver.controllers;
 import org.simpleserver.Endpoint;
 
 public class {{classname}} extends Endpoint {
+    private final Object repository;
+
+    public {{classname}}(Object repository) {
+        this.repository = repository;
+    }
 {{#operations}}{{#operation}}
     public Object {{operationId}}(Object request) {
         this.setResponseCode(500);

@@ -11,11 +11,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class RequestHandler implements HttpHandler {
-
     private Map<String, Endpoint> endpointMap = new HashMap<String, Endpoint>();
+    private Object repository = null;
 
     public RequestHandler() { {{#apiInfo}}{{#operationsByPath}}
-        endpointMap.put("{{path}}", new {{className}}());{{/operationsByPath}}{{/apiInfo}}
+        endpointMap.put("{{path}}", new {{className}}(repository));{{/operationsByPath}}{{/apiInfo}}
     }
 
     private String getRequestBody(HttpExchange t) throws IOException {

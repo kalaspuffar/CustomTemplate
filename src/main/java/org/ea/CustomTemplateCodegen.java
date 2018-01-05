@@ -269,9 +269,8 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
                         } else {
                             tags = pathname.replaceAll("/\\{([a-zA-Z]+)\\}", "") + "Collection";
                         }
-                        if(operation.getOperationId() == null) {
-                            operation.setOperationId("handle" + method.toString().toUpperCase());
-                        }
+
+                        operation.setOperationId("handle" + method.toString().toUpperCase());
 
                         StringBuilder sb = new StringBuilder();
                         for (String tag : tags.split("/")) {

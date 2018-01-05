@@ -5,7 +5,9 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 public class {{classname}}Test {
-    {{classname}} endpoint = new {{classname}}();
+    private Object testRepository = null;
+
+    {{classname}} endpoint = new {{classname}}(testRepository);
 {{#operations}}{{#operation}}
     @Test
     public void testHandle{{httpMethod}}() {
