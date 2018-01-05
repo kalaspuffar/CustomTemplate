@@ -1,4 +1,4 @@
-package org.ea;
+package org.simpleserver;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -11,11 +11,30 @@ public abstract class Endpoint {
     private Map<String, String> pathParam = new HashMap<>();
     private int responseCode;
 
-    public abstract Object handleGET(Object request);
-    public abstract Object handlePOST(Object request);
-    public abstract Object handlePATCH(Object request);
-    public abstract Object handlePUT(Object request);
-    public abstract Object handleDELETE(Object request);
+    public Object handleGET(Object request) {
+        this.setResponseCode(500);
+        return "Endpoint not implemented";
+    }
+
+    public Object handlePOST(Object request) {
+        this.setResponseCode(500);
+        return "Endpoint not implemented";
+    }
+
+    public Object handlePATCH(Object request) {
+        this.setResponseCode(500);
+        return "Endpoint not implemented";
+    }
+
+    public Object handlePUT(Object request) {
+        this.setResponseCode(500);
+        return "Endpoint not implemented";
+    }
+
+    public Object handleDELETE(Object request) {
+        this.setResponseCode(500);
+        return "Endpoint not implemented";
+    }
 
     public int getResponseCode() {
         return responseCode;

@@ -1,4 +1,4 @@
-package org.ea;
+package org.simpleserver;
 
 import java.net.InetSocketAddress;
 import com.sun.net.httpserver.HttpServer;

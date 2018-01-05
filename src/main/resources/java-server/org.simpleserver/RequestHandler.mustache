@@ -1,10 +1,8 @@
-package org.ea;
+package org.simpleserver;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import org.ea.controllers.notes.NotesCollection;
-import org.ea.controllers.notes.NotesItem;
-import org.ea.repositories.NotesRepository;
+import org.simpleserver.controllers.*;
 
 import java.io.*;
 import java.util.*;
@@ -15,10 +13,8 @@ public class RequestHandler implements HttpHandler {
 
     private Map<String, Endpoint> endpointMap = new HashMap<String, Endpoint>();
 
-    public RequestHandler() {
-{{=< >=}}<#operations><#operation>
-        endpointMap.put("<&path>", new NotesCollection(NotesRepository.getInstance()));
-</operation></operations><={{ }}=>
+    public RequestHandler() { {{#apiInfo}}{{#operationsByPath}}
+        endpointMap.put("{{path}}", new {{className}}());{{/operationsByPath}}{{/apiInfo}}
     }
 
     private String getRequestBody(HttpExchange t) throws IOException {

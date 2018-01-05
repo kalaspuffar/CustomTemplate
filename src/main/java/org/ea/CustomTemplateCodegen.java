@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import io.swagger.codegen.CliOption;
 import io.swagger.codegen.CodegenConfig;
 import io.swagger.codegen.CodegenOperation;
 import io.swagger.codegen.CodegenParameter;
@@ -16,11 +15,7 @@ import io.swagger.codegen.CodegenResponse;
 import io.swagger.codegen.CodegenType;
 import io.swagger.codegen.DefaultCodegen;
 import io.swagger.codegen.SupportingFile;
-import io.swagger.models.HttpMethod;
-import io.swagger.models.Info;
-import io.swagger.models.Operation;
-import io.swagger.models.Path;
-import io.swagger.models.Swagger;
+import io.swagger.models.*;
 import io.swagger.util.Yaml;
 import java.io.File;
 import java.io.IOException;
@@ -33,7 +28,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -172,6 +166,12 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
     }
 
     @Override
+    public String apiFilename(String templateName, String tag) {
+        String suffix = apiTemplateFiles().get(templateName);
+        return apiFileFolder() + '/' + toApiFilename(tag) + suffix;
+    }
+
+    @Override
     public Map<String, Object> postProcessOperations(Map<String, Object> objs) {
         @SuppressWarnings("unchecked")
         Map<String, Object> objectMap = (Map<String, Object>) objs.get("operations");
@@ -216,6 +216,8 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
         writeOptional(outputFolder, new SupportingFile("org.simpleserver/SimpleServer.java", "src/main/java/org/simpleserver", "SimpleServer.java"));
         writeOptional(outputFolder, new SupportingFile(".gitignore", "", ".gitignore"));
         writeOptional(outputFolder, new SupportingFile("README.mustache", "", "README.md"));
+        writeOptional(outputFolder, new SupportingFile("pom.xml", "", "pom.xml"));
+        writeOptional(outputFolder, new SupportingFile("LICENSE.mustache", "", "LICENSE.md"));
     }
 
 
@@ -242,12 +244,12 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
             Map<String, Object> opsByPathEntry = new HashMap<String, Object>();
             opsByPathList.add(opsByPathEntry);
             opsByPathEntry.put("path", entry.getKey());
-            opsByPathEntry.put("operation", entry.getValue());
-            List<CodegenOperation> operationsForThisPath = Lists.newArrayList(entry.getValue());
-            operationsForThisPath.get(operationsForThisPath.size() - 1).hasMore = false;
-            if (opsByPathList.size() < opsByPath.asMap().size()) {
-                opsByPathEntry.put("hasMore", "true");
+            CodegenOperation op = entry.getValue().iterator().next();
+            String className = "";
+            for (Tag tag : op.tags) {
+                className += tag.getName().substring(0, 1).toUpperCase() + tag.getName().substring(1);;
             }
+            opsByPathEntry.put("className", className);
         }
 
         return opsByPathList;
@@ -289,17 +291,19 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
                 if(operationMap != null) {
                     for(HttpMethod method : operationMap.keySet()) {
                         Operation operation = operationMap.get(method);
-                        String tag = "default";
+                        if(operation.getTags() != null) operation.getTags().clear();
+                        String tags;
                         if(pathname.endsWith("}")) {
-                            tag = pathname.replaceAll("\\{([a-zA-Z]+)\\}", "") + "Item";
+                            tags = pathname.replaceAll("/\\{([a-zA-Z]+)\\}", "") + "Item";
                         } else {
-                            tag = pathname.replaceAll("\\{([a-zA-Z]+)\\}", "") + "Collection";
+                            tags = pathname.replaceAll("/\\{([a-zA-Z]+)\\}", "") + "Collection";
                         }
                         if(operation.getOperationId() == null) {
-                            operation.setOperationId(getOrGenerateOperationId(operation, pathname, method.toString()));
+                            operation.setOperationId("handle" + method.toString().toUpperCase());
                         }
-                        if(operation.getVendorExtensions().get("x-swagger-router-controller") == null) {
-                            operation.getVendorExtensions().put("x-swagger-router-controller", sanitizeTag(tag));
+
+                        for (String tag : tags.split("/")) {
+                            if(!tag.trim().isEmpty()) operation.addTag(tag);
                         }
                     }
                 }
@@ -325,13 +329,18 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
                 LOGGER.error(e.getMessage(), e);
             }
         }
+
+        List<Map<String, Object>> opsByPathList = new ArrayList<Map<String, Object>>();
         for (Map<String, Object> operations : getOperations(objs)) {
             @SuppressWarnings("unchecked")
             List<CodegenOperation> ops = (List<CodegenOperation>) operations.get("operation");
 
-            List<Map<String, Object>> opsByPathList = sortOperationsByPath(ops);
-            operations.put("operationsByPath", opsByPathList);
+            opsByPathList.addAll(sortOperationsByPath(ops));
         }
+
+        Map<String, Object> apiInfo = (Map<String, Object>) objs.get("apiInfo");
+        apiInfo.put("operationsByPath", opsByPathList);
+
         return super.postProcessSupportingFileData(objs);
     }
 
