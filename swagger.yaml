@@ -4,6 +4,8 @@ info:
   description: "Very simplistic API to handle notes.\n"
   version: "0.0.1"
   title: "Notes"
+  contact:
+    name: Daniel Persson
 host: "localhost:8080"
 basePath: "/"
 schemes:
@@ -112,6 +114,21 @@ paths:
           description: "Note was changed."
         500:
           description: "Internal server error"
+  /users/{userId}/notes:
+    get:
+      parameters:
+      - name: "id"
+        in: "path"
+        description: "Id of the user."
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "Get all notes"
+          schema:
+            type: "array"
+            items:
+              $ref: "#/definitions/Note"
 definitions:
   Note:
     type: "object"

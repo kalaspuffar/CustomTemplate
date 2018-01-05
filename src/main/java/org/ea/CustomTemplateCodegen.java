@@ -6,12 +6,9 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import io.swagger.codegen.CodegenConfig;
 import io.swagger.codegen.CodegenOperation;
-import io.swagger.codegen.CodegenParameter;
-import io.swagger.codegen.CodegenResponse;
 import io.swagger.codegen.CodegenType;
 import io.swagger.codegen.DefaultCodegen;
 import io.swagger.codegen.SupportingFile;
@@ -24,7 +21,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,8 +29,6 @@ import org.slf4j.LoggerFactory;
 
 public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(CustomTemplateCodegen.class);
-    protected String implFolder = "service";
-
     protected String apiVersion = "1.0.0";
     protected int serverPort = 8080;
     protected String projectName = "swagger-server";
@@ -58,10 +52,9 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
          * as with models, add multiple entries with different extensions for multiple files per
          * class
          */
-
-        apiTemplateFiles.put(
-                "controller.mustache",   // the template to use
-                ".java");       // the extension for each file to write
+        apiTemplateFiles.put("api.mustache", ".java");
+        apiTestTemplateFiles.put("api_test.mustache", ".java");
+        apiDocTemplateFiles.put("api_doc.mustache", ".md");
 
         /*
          * Template Location.  This is the location which templates will be read from.  The generator
@@ -88,7 +81,7 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
          */
         additionalProperties.put("apiVersion", apiVersion);
         additionalProperties.put("serverPort", serverPort);
-        additionalProperties.put("implFolder", implFolder);
+        additionalProperties.put("apiDocPath", "apidoc/");
     }
 
     @Override
@@ -172,52 +165,27 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
     }
 
     @Override
-    public Map<String, Object> postProcessOperations(Map<String, Object> objs) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> objectMap = (Map<String, Object>) objs.get("operations");
-        @SuppressWarnings("unchecked")
-        List<CodegenOperation> operations = (List<CodegenOperation>) objectMap.get("operation");
-        for (CodegenOperation operation : operations) {
-            operation.httpMethod = operation.httpMethod.toLowerCase();
-
-            List<CodegenParameter> params = operation.allParams;
-            if (params != null && params.size() == 0) {
-                operation.allParams = null;
-            }
-            List<CodegenResponse> responses = operation.responses;
-            if (responses != null) {
-                for (CodegenResponse resp : responses) {
-                    if ("0".equals(resp.code)) {
-                        resp.code = "default";
-                    }
-                }
-            }
-            if (operation.examples != null && !operation.examples.isEmpty()) {
-                // Leave application/json* items only
-                for (Iterator<Map<String, String>> it = operation.examples.iterator(); it.hasNext(); ) {
-                    final Map<String, String> example = it.next();
-                    final String contentType = example.get("contentType");
-                    if (contentType == null || !contentType.startsWith("application/json")) {
-                        it.remove();
-                    }
-                }
-            }
-        }
-        return objs;
+    public String apiTestFileFolder() {
+        return (outputFolder + "/src/test/java/org/simpleserver/controllers");
     }
 
+    @Override
+    public String apiDocFileFolder() {
+        return (outputFolder + "/apidoc");
+    }
 
     @Override
     public void processOpts() {
         super.processOpts();
 
-        writeOptional(outputFolder, new SupportingFile("org.simpleserver/Endpoint.java", "src/main/java/org/simpleserver", "Endpoint.java"));
+        writeOptional(outputFolder, new SupportingFile("org.simpleserver/Endpoint.mustache", "src/main/java/org/simpleserver", "Endpoint.java"));
         writeOptional(outputFolder, new SupportingFile("org.simpleserver/RequestHandler.mustache", "src/main/java/org/simpleserver", "RequestHandler.java"));
-        writeOptional(outputFolder, new SupportingFile("org.simpleserver/SimpleServer.java", "src/main/java/org/simpleserver", "SimpleServer.java"));
+        writeOptional(outputFolder, new SupportingFile("org.simpleserver/SimpleServer.mustache", "src/main/java/org/simpleserver", "SimpleServer.java"));
         writeOptional(outputFolder, new SupportingFile(".gitignore", "", ".gitignore"));
         writeOptional(outputFolder, new SupportingFile("README.mustache", "", "README.md"));
         writeOptional(outputFolder, new SupportingFile("pom.xml", "", "pom.xml"));
-        writeOptional(outputFolder, new SupportingFile("LICENSE.mustache", "", "LICENSE.md"));
+        writeOptional(outputFolder, new SupportingFile("LICENSE.mustache", "", "LICENSE"));
+        writeOptional(outputFolder, new SupportingFile("swagger.mustache", "apidoc", "swagger.yaml"));
     }
 
 
@@ -245,11 +213,7 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
             opsByPathList.add(opsByPathEntry);
             opsByPathEntry.put("path", entry.getKey());
             CodegenOperation op = entry.getValue().iterator().next();
-            String className = "";
-            for (Tag tag : op.tags) {
-                className += tag.getName().substring(0, 1).toUpperCase() + tag.getName().substring(1);;
-            }
-            opsByPathEntry.put("className", className);
+            opsByPathEntry.put("className", op.tags.get(0).getName());
         }
 
         return opsByPathList;
@@ -280,6 +244,13 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
                         .toLowerCase();
                 this.additionalProperties.put("projectName", projectName);
             }
+
+            Contact contact = info.getContact();
+            if (contact != null && contact.getName() != null) {
+                this.additionalProperties().put("infoName", this.escapeText(contact.getName()));
+            } else {
+                this.additionalProperties().put("infoName", "[YOUR NAME HERE]");
+            }
         }
 
         // need vendor extensions for x-swagger-router-controller
@@ -302,9 +273,13 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
                             operation.setOperationId("handle" + method.toString().toUpperCase());
                         }
 
+                        StringBuilder sb = new StringBuilder();
                         for (String tag : tags.split("/")) {
-                            if(!tag.trim().isEmpty()) operation.addTag(tag);
+                            if(!tag.trim().isEmpty()) {
+                                sb.append(tag.substring(0, 1).toUpperCase() + tag.substring(1));
+                            }
                         }
+                        operation.addTag(sb.toString());
                     }
                 }
             }
@@ -344,10 +319,6 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
         return super.postProcessSupportingFileData(objs);
     }
 
-    @Override
-    public String removeNonNameElementToCamelCase(String name) {
-        return removeNonNameElementToCamelCase(name, "[-:;#]");
-    }
 
     @Override
     public String escapeUnsafeCharacters(String input) {

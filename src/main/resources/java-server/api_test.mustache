@@ -1,0 +1,17 @@
+{{>licenseInfo}}
+package org.simpleserver.controllers;
+
+import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+
+public class {{classname}}Test {
+    {{classname}} endpoint = new {{classname}}();
+{{#operations}}{{#operation}}
+    @Test
+    public void testHandle{{httpMethod}}() {
+        String response = (String)this.endpoint.{{operationId}}(null);
+        int responseCode = this.endpoint.getResponseCode();
+        assertEquals(500, responseCode);
+        assertEquals("Endpoint not implemented", response);
+    } {{/operation}}{{/operations}}
+}
