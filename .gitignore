@@ -15,3 +15,7 @@ buildNumber.properties
 *.iml
 test
 oldtemplate
+.classpath
+.settings
+.project
+petstore.json
