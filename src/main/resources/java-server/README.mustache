@@ -1,6 +1,6 @@
 # {{projectName}}
 
-{{moduleName}} - JavaScript client for {{projectName}}
+Java REST server for {{projectName}}
 {{#appDescription}}
 {{{appDescription}}}
 {{/appDescription}}
@@ -26,6 +26,12 @@ To build local copy use package
 ```shell
 mvn clean package
 ```
+
+## Running
+
+In order to start your server after building it you run
+
+java -jar target/{{projectName}}Server-1.0-SNAPSHOT-jar-with-dependencies.jar
 
 ## Documentation for API Endpoints
 

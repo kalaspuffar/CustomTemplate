@@ -183,7 +183,7 @@ public class CustomTemplateCodegen extends DefaultCodegen implements CodegenConf
         writeOptional(outputFolder, new SupportingFile("org.simpleserver/SimpleServer.mustache", "src/main/java/org/simpleserver", "SimpleServer.java"));
         writeOptional(outputFolder, new SupportingFile(".gitignore", "", ".gitignore"));
         writeOptional(outputFolder, new SupportingFile("README.mustache", "", "README.md"));
-        writeOptional(outputFolder, new SupportingFile("pom.xml", "", "pom.xml"));
+        writeOptional(outputFolder, new SupportingFile("pom.mustache", "", "pom.xml"));
         writeOptional(outputFolder, new SupportingFile("LICENSE.mustache", "", "LICENSE"));
         writeOptional(outputFolder, new SupportingFile("swagger.mustache", "apidoc", "swagger.yaml"));
     }
